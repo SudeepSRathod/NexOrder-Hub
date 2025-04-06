@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Products</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+    <h1>Products</h1>
+    <button class="btn btn-primary mb-3" onclick="showModal()">Add Product</button>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="productsTable"></tbody>
+    </table>
+
+    <div class="modal" id="productModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="modalTitle">Add Product</h5>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editId">
+                    <input class="form-control mb-2" id="name" placeholder="Product name">
+                    <input type="number" class="form-control mb-2" id="price" placeholder="Price">
+                    <input type="number" class="form-control mb-2" id="stock" placeholder="Stock">
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveProduct()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let products = JSON.parse(localStorage.getItem('products')) || [];
+        
+        function showModal(id) {
+            if (id) {
+                const product = products.find(p => p.id === id);
+                document.getElementById('editId').value = id;
+                document.getElementById('name').value = product.name;
+                document.getElementById('price').value = product.price;
+                document.getElementById('stock').value = product.stock;
+                document.getElementById('modalTitle').textContent = 'Edit Product';
+            }
+            new bootstrap.Modal(document.getElementById('productModal')).show();
+        }
+        
+        function hideModal() {
+            bootstrap.Modal.getInstance(document.getElementById('productModal')).hide();
+        }
+        
+        function saveProduct() {
+            const id = document.getElementById('editId').value;
+            const name = document.getElementById('name').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const stock = parseInt(document.getElementById('stock').value);
+            
+            if (id) {
+                // Update
+                const index = products.findIndex(p => p.id == id);
+                products[index] = { id: parseInt(id), name, price, stock };
+            } else {
+                // Add new
+                const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                products.push({ id: newId, name, price, stock });
+            }
+            
+            localStorage.setItem('products', JSON.stringify(products));
+            renderProducts();
+            hideModal();
+        }
+        
+        function deleteProduct(id) {
+            if (confirm('Delete this product?')) {
+                products = products.filter(p => p.id !== id);
+                localStorage.setItem('products', JSON.stringify(products));
+                renderProducts();
+            }
+        }
+        
+        function renderProducts() {
+            document.getElementById('productsTable').innerHTML = products.map(p => `
+                <tr>
+                    <td>${p.name}</td>
+                    <td>₹${p.price}</td>
+                    <td>${p.stock}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="showModal(${p.id})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        renderProducts();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

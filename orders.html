@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Orders</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="p-4">
+    <h1>Orders</h1>
+    <button class="btn btn-primary mb-3" onclick="showModal()">Add Order</button>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="ordersTable"></tbody>
+    </table>
+
+    <div class="modal" id="orderModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 id="orderModalTitle">Add Order</h5>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="orderEditId">
+                    <input class="form-control mb-2" id="customer" placeholder="Customer name">
+                    <select class="form-select mb-2" id="productId">
+                        ${JSON.parse(localStorage.getItem('products') || []).map(p => 
+                            `<option value="${p.id}">${p.name} (₹${p.price})</option>`
+                        ).join('')}
+                    </select>
+                    <input type="number" class="form-control mb-2" id="quantity" placeholder="Quantity" value="1">
+                    <select class="form-select mb-2" id="status">
+                        <option>Pending</option>
+                        <option>Completed</option>
+                        <option>Cancelled</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="hideOrderModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveOrder()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let orders = JSON.parse(localStorage.getItem('orders')) || [];
+        const products = JSON.parse(localStorage.getItem('products')) || [];
+        
+        function showModal(id) {
+            if (id) {
+                const order = orders.find(o => o.id === id);
+                document.getElementById('orderEditId').value = id;
+                document.getElementById('customer').value = order.customer;
+                document.getElementById('productId').value = order.productId;
+                document.getElementById('quantity').value = order.quantity;
+                document.getElementById('status').value = order.status;
+                document.getElementById('orderModalTitle').textContent = 'Edit Order';
+            }
+            new bootstrap.Modal(document.getElementById('orderModal')).show();
+        }
+        
+        function hideOrderModal() {
+            bootstrap.Modal.getInstance(document.getElementById('orderModal')).hide();
+        }
+        
+        function saveOrder() {
+            const id = document.getElementById('orderEditId').value;
+            const customer = document.getElementById('customer').value;
+            const productId = parseInt(document.getElementById('productId').value);
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const status = document.getElementById('status').value;
+            
+            const product = products.find(p => p.id === productId);
+            const total = product ? product.price * quantity : 0;
+            
+            if (id) {
+                // Update
+                const index = orders.findIndex(o => o.id == id);
+                orders[index] = { id: parseInt(id), customer, productId, quantity, total, status };
+            } else {
+                // Add new
+                const newId = orders.length ? Math.max(...orders.map(o => o.id)) + 1 : 1;
+                orders.push({ id: newId, customer, productId, quantity, total, status });
+            }
+            
+            localStorage.setItem('orders', JSON.stringify(orders));
+            renderOrders();
+            hideOrderModal();
+        }
+        
+        function deleteOrder(id) {
+            if (confirm('Delete this order?')) {
+                orders = orders.filter(o => o.id !== id);
+                localStorage.setItem('orders', JSON.stringify(orders));
+                renderOrders();
+            }
+        }
+        
+        function renderOrders() {
+            document.getElementById('ordersTable').innerHTML = orders.map(o => {
+                const product = products.find(p => p.id === o.productId);
+                return `
+                    <tr>
+                        <td>${o.customer}</td>
+                        <td>${product ? product.name : 'Unknown'} (${o.quantity}x)</td>
+                        <td>₹${o.total}</td>
+                        <td>${o.status}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="showModal(${o.id})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteOrder(${o.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        renderOrders();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
